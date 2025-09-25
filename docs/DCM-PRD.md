@@ -218,7 +218,38 @@ onRate(problemId, stars):
 ## 14) Demo Script (60s)
 - Skip Two-minute Start → NeetCode (in order) loads → set Guidance → Hint 1 & 2 → Panic Token + reflection → Run tests → rate ⭐⭐⭐ → Favorite with reason tag → open Review (1 due) → mini-lesson chip appears.
 
-## 15) Open Questions
+## 15) Critical Implementation Fixes Required
+
+### 15.1 File Structure Issues (URGENT)
+- **Folder Name Typo**: ✅ FIXED - `componenets/` renamed to `components/`
+- **Import Path Mismatch**: ✅ FIXED - All import paths now correct
+- **Missing Utility File**: ✅ FIXED - `lib/utils.ts` created with `cn()` function
+
+### 15.2 Missing Dependencies
+- **shadcn/ui Components**: ✅ FIXED - All required components added
+- **TypeScript Configuration**: May need path aliases setup for `@/components` imports
+
+### 15.3 UI Implementation Status (as of current review)
+**✅ COMPLETED:**
+- Complete UI shell with all major screens (Today, Review, Favorites)
+- Dark mode + Focus mode implementation
+- Violet + Lime theme with gradients
+- Two-minute Start drawer
+- Coach right rail with hint system
+- Source selection modal
+- Responsive design and accessibility
+- Loading skeletons for all components
+
+**❌ PENDING FUNCTIONALITY:**
+- CodeMirror 6 editor integration
+- JavaScript sandbox runner (Web Worker/iframe)
+- IndexedDB storage layer
+- Spaced repetition scheduling engine
+- Problem management and parsing
+- Error Bank system
+- Mini-lesson templates
+
+## 16) Open Questions
 - Which local model/runtime for hint ladders and extraction (size/latency tradeoff)?
 - Which specific JS test harness shape (simple assert vs. minimal jest-like)?
 - How to seed 5–10 NeetCode prompts within TOS boundaries; exact fields allowed.
