@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Moon, Sun, Focus, Maximize2 } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 interface TopBarProps {
   isDarkMode: boolean
   setIsDarkMode: (value: boolean) => void
   isFocusMode: boolean
   setIsFocusMode: (value: boolean) => void
+  demoEnabled?: boolean
+  setDemoEnabled?: (value: boolean) => void
 }
 
-export function TopBar({ isDarkMode, setIsDarkMode, isFocusMode, setIsFocusMode }: TopBarProps) {
+export function TopBar({ isDarkMode, setIsDarkMode, isFocusMode, setIsFocusMode, demoEnabled, setDemoEnabled }: TopBarProps) {
   const handleThemeToggle = () => {
     setIsDarkMode(!isDarkMode)
     document.documentElement.classList.toggle("dark")
@@ -30,6 +33,18 @@ export function TopBar({ isDarkMode, setIsDarkMode, isFocusMode, setIsFocusMode 
       </div>
 
       <div className="flex items-center gap-6">
+        {/* Demo Mode */}
+        {setDemoEnabled && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setDemoEnabled(true)}
+          >
+            <Sparkles className="h-4 w-4 text-violet-500" />
+            Demo
+          </Button>
+        )}
         {/* Theme Toggle */}
         <div className="flex items-center gap-2">
           <Label htmlFor="theme-toggle" className="text-sm text-muted-foreground sr-only">

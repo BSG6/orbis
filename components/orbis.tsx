@@ -7,6 +7,7 @@ import { TodayScreen } from "./today-screen"
 import { ReviewScreen } from "./review-screen"
 import { FavoritesScreen } from "./favorites-screen"
 import { TwoMinuteStartDrawer } from "./two-minute-start-drawer"
+import { DemoOverlay } from "./demo-overlay"
 
 export function Orbis() {
   const [isDarkMode, setIsDarkMode] = useState(true)
@@ -14,6 +15,7 @@ export function Orbis() {
   const [activeScreen, setActiveScreen] = useState("Today")
   const [isStartDrawerOpen, setIsStartDrawerOpen] = useState(true)
   const [isStartDrawerMinimized, setIsStartDrawerMinimized] = useState(false)
+  const [demoEnabled, setDemoEnabled] = useState(false)
 
   // Check if start drawer should be minimized on load
   useEffect(() => {
@@ -31,6 +33,8 @@ export function Orbis() {
         setIsDarkMode={setIsDarkMode}
         isFocusMode={isFocusMode}
         setIsFocusMode={setIsFocusMode}
+        demoEnabled={demoEnabled}
+        setDemoEnabled={setDemoEnabled}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -60,6 +64,8 @@ export function Orbis() {
         }}
         isMinimized={isStartDrawerMinimized}
       />
+
+      <DemoOverlay enabled={demoEnabled} onClose={() => setDemoEnabled(false)} />
     </div>
   )
 }
