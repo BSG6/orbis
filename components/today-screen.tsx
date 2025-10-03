@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Star, Heart, Play, Terminal, FileText, Lightbulb, HelpCircle, Zap, ChevronUp, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CoachRightRail } from "./coach-right-rail"
@@ -12,7 +13,9 @@ import { CodeEditor } from "./code-editor"
 import { TestRunner } from "./test-runner"
 import { useScheduling } from "@/hooks/use-scheduling"
 import { getProblemById } from "@/lib/db"
+import { getHints as getHintsRemote, getTotalHelp as getTotalHelpRemote } from "@/lib/aiClient"
 import { getFavoriteByProblemId, putFavorite, deleteFavorite } from "@/lib/db"
+import { ChatPanel } from "./chat-panel"
 
 interface TodayScreenProps {
   isFocusMode: boolean
@@ -27,12 +30,24 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
   const [isFavorited, setIsFavorited] = useState(false)
   const [isInstructionsCollapsed, setIsInstructionsCollapsed] = useState(false)
   const [isCoachCollapsed, setIsCoachCollapsed] = useState(false)
+  const [showResetToast, setShowResetToast] = useState(false)
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState<string | null>(null)
+  const [aiHints, setAiHints] = useState<{ nudge: string; strategy: string; specific: string } | null>(null)
+  const [aiTotalHelp, setAiTotalHelp] = useState<any>(null)
   
   // Scheduling system
   const { rateProblem, getTimeUntilDue } = useScheduling()
   
-  // Current problem ID (in a real app, this would come from routing or problem selection)
-  const currentProblemId = "longest-palindrome-sample"
+  // Current problem ID
+  const [currentProblemId, setCurrentProblemId] = useState<string>("longest-palindrome-sample")
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("today-current-problem-id")
+      if (saved) setCurrentProblemId(saved)
+    } catch {}
+  }, [])
 
   // Load current problem details from DB
   const [problemTitle, setProblemTitle] = useState<string>("Today's Challenge")
@@ -62,10 +77,11 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
     return () => { mounted = false }
   }, [])
 
-  const [code, setCode] = useState(`function longestPalindrome(s) {
-    // Your solution here
-    
-}`)
+  const DEFAULT_CODE = `function longestPalindrome(s) {
+  // Your solution here
+  
+}`
+  const [code, setCode] = useState(DEFAULT_CODE)
 
   // Sample test cases for the current problem
   const testCases = [
@@ -242,11 +258,101 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
                 )
               })}
             </div>
-            {!isFocusMode && (
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                {assistanceLevels.find((l) => l.value === assistanceLevel)?.description}
-              </p>
+            <div className="mt-2 flex items-center justify-between">
+              {!isFocusMode && (
+                <p className="text-xs text-muted-foreground">
+                  {assistanceLevels.find((l) => l.value === assistanceLevel)?.description}
+                </p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("h-8 px-3", isFocusMode ? "text-xs" : "text-xs")}
+                disabled={aiLoading}
+                onClick={async () => {
+                  setAiError(null)
+                  setAiHints(null)
+                  setAiTotalHelp(null)
+                  setAiLoading(true)
+                  try {
+                    if (assistanceLevel === "Guidance") {
+                      const h = await getHintsRemote(promptText)
+                      setAiHints(h)
+                    } else {
+                      const th = await getTotalHelpRemote(promptText)
+                      setAiTotalHelp(th)
+                    }
+                  } catch (e: any) {
+                    setAiError(e?.message || "AI feedback failed")
+                  } finally {
+                    setAiLoading(false)
+                  }
+                }}
+              >
+                {aiLoading ? "Getting AI Feedback…" : "Get AI Feedback"}
+              </Button>
+            </div>
+            {(aiHints || aiTotalHelp || aiError) && (
+              <Card className="mt-3">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">AI Feedback</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {aiError && <div className="text-xs text-red-500">{aiError}</div>}
+                  {assistanceLevel === "Guidance" && aiHints && (
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <div className="font-medium">Nudge</div>
+                        <p className="text-muted-foreground">{aiHints.nudge}</p>
+                      </div>
+                      <div>
+                        <div className="font-medium">Strategy</div>
+                        <p className="text-muted-foreground">{aiHints.strategy}</p>
+                      </div>
+                      <div>
+                        <div className="font-medium">Specific</div>
+                        <p className="text-muted-foreground">{aiHints.specific}</p>
+                      </div>
+                    </div>
+                  )}
+                  {assistanceLevel !== "Guidance" && aiTotalHelp && (
+                    <div className="space-y-2 text-sm max-h-60 overflow-y-auto">
+                      <div>
+                        <div className="font-medium">ELI5</div>
+                        <p className="text-muted-foreground">{aiTotalHelp.eli5}</p>
+                      </div>
+                      <div>
+                        <div className="font-medium">Practical</div>
+                        <p className="text-muted-foreground">{aiTotalHelp.practical}</p>
+                      </div>
+                      <div>
+                        <div className="font-medium">Technical</div>
+                        <p className="text-muted-foreground">{aiTotalHelp.technical}</p>
+                      </div>
+                      {Array.isArray(aiTotalHelp.edgeCases) && (
+                        <div>
+                          <div className="font-medium">Edge Cases</div>
+                          <ul className="list-disc pl-5 text-muted-foreground text-xs">
+                            {aiTotalHelp.edgeCases.map((e: string, i: number) => (
+                              <li key={i}>{e}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
+            {/* Chat Panel */}
+            <div className="mt-3">
+              <ChatPanel
+                problemId={currentProblemId}
+                assistanceLevel={assistanceLevel}
+                problemContext={`Title: ${problemTitle}\n\nPrompt:\n${promptText}\n\nConstraints:\n${constraintsText}\n\nExamples:\n${examplesText}`}
+                code={code}
+              />
+            </div>
           </div>
         )}
 
@@ -257,22 +363,32 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
           )}
         >
           <Card className={cn("flex flex-col", isFocusMode && "col-span-full")}>
-            <CardHeader className={cn("pb-3", isFocusMode && "pb-2")}>              
-              <CardTitle className={cn("flex items-center gap-2", isFocusMode ? "text-base" : "text-lg")}>
+            <CardHeader className={cn("pb-3", isFocusMode && "pb-2")}>
+              <CardTitle className={cn("flex items-center gap-2", isFocusMode ? "text-base" : "text-lg")}>                
                 <Terminal className={cn("text-violet-500", isFocusMode ? "h-4 w-4" : "h-5 w-5")} />
                 Code Editor
-                {isFocusMode && (
-                  <Badge variant="outline" className="ml-auto text-xs">
-                    Focus Mode
-                  </Badge>
-                )}
+                <div className="ml-auto flex items-center gap-2">
+                  {isFocusMode && (
+                    <Badge variant="outline" className="text-xs">
+                      Focus Mode
+                    </Badge>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("h-8 px-3", isFocusMode ? "text-xs" : "text-xs")}
+                    onClick={() => setCode(DEFAULT_CODE)}
+                  >
+                    Reset Code
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-0">
               <div
                 className={cn(
-                  "h-full border-t border-border",
-                  isFocusMode ? "min-h-[500px]" : "min-h-[300px]",
+                  "h-full border-t border-border overflow-y-auto",
+                  isFocusMode ? "min-h-[500px] max-h-[75vh]" : "min-h-[300px] max-h-[60vh]",
                 )}
               >
                 <CodeEditor
@@ -292,6 +408,8 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
                 code={code}
                 tests={testCases}
                 className="h-full"
+                problemId={currentProblemId}
+                assistanceLevel={assistanceLevel}
               />
             </div>
           )}
@@ -369,7 +487,7 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size={isFocusMode ? "sm" : "sm"} className={isFocusMode ? "text-xs h-8" : ""}>
+            <Button variant="outline" size={isFocusMode ? "sm" : "sm"} className={isFocusMode ? "text-xs h-8" : ""} onClick={() => setIsResetConfirmOpen(true)}>
               Reset
             </Button>
             <Button
@@ -390,7 +508,43 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
         onToggleCollapse={() => setIsCoachCollapsed(!isCoachCollapsed)}
         isFocusMode={isFocusMode}
         assistanceLevel={assistanceLevel}
+        problemPrompt={promptText}
       />
+
+      <Dialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset session?</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            This will clear the editor, rating, and favorite for the current problem.
+          </div>
+          <div className="mt-4 flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setIsResetConfirmOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-gradient-to-r from-violet-500 to-lime-400 hover:from-violet-600 hover:to-lime-500"
+              onClick={() => {
+                setCode(DEFAULT_CODE)
+                setStars(0)
+                setIsFavorited(false)
+                setIsResetConfirmOpen(false)
+                setShowResetToast(true)
+                setTimeout(() => setShowResetToast(false), 2000)
+              }}
+            >
+              Confirm Reset
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {showResetToast && (
+        <div className="fixed bottom-4 right-4 z-[9999]">
+          <div className="bg-card border border-border rounded-md shadow px-3 py-2 text-sm text-foreground">
+            Reset complete
+          </div>
+        </div>
+      )}
     </div>
   )
 }

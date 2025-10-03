@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -23,6 +23,7 @@ export function TwoMinuteStartDrawer({ isOpen, onClose, onMinimize, isMinimized 
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel>("ok")
   const [patternFocus, setPatternFocus] = useState<PatternFocus>("focus")
   const [recall, setRecall] = useState("")
+  const containerRef = useRef<HTMLDivElement | null>(null)
 
   // Session memory - remember minimized state
   useEffect(() => {
@@ -62,6 +63,13 @@ export function TwoMinuteStartDrawer({ isOpen, onClose, onMinimize, isMinimized 
   }
 
   const handleSkip = () => {
+    try {
+      const count = parseInt(localStorage.getItem("start-skip-count") || "0", 10) + 1
+      localStorage.setItem("start-skip-count", String(count))
+      if (count >= 3) {
+        localStorage.setItem("start-automin", "true")
+      }
+    } catch {}
     sessionStorage.setItem("start-drawer-minimized", "true")
     onClose()
   }
@@ -91,11 +99,55 @@ export function TwoMinuteStartDrawer({ isOpen, onClose, onMinimize, isMinimized 
     },
   ]
 
+  // Focus trap + ESC to close when open
+  useEffect(() => {
+    if (!isOpen) return
+    const node = containerRef.current
+    // Focus first focusable element
+    const focusables = node?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    )
+    focusables && focusables[0]?.focus()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (e.key === "Tab" && focusables && focusables.length > 0) {
+        const elements = Array.from(focusables)
+        const first = elements[0]
+        const last = elements[elements.length - 1]
+        const active = document.activeElement as HTMLElement | null
+        if (e.shiftKey) {
+          if (active === first || !elements.includes(active as HTMLElement)) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (active === last || !elements.includes(active as HTMLElement)) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-background border-violet-500/20">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Two-Minute Start"
+    >
+      <Card className="w-full max-w-md bg-background border-violet-500/20 pointer-events-auto">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">

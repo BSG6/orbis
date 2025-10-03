@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Shuffle, List, User, ExternalLink, FileText, ArrowRight, SkipForward } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { extractProblem } from "@/lib/aiClient"
+import { putProblems } from "@/lib/db"
 
 interface SourceModalProps {
   isOpen: boolean
@@ -21,6 +23,7 @@ export function SourceModal({ isOpen, onClose }: SourceModalProps) {
   const [customUrl, setCustomUrl] = useState("")
   const [customText, setCustomText] = useState("")
   const [currentNeetCodeIndex] = useState(47) // Example current position
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const sources = [
     {
@@ -55,9 +58,40 @@ export function SourceModal({ isOpen, onClose }: SourceModalProps) {
     setSelectedSource(sourceId)
   }
 
-  const handleStart = () => {
-    // Handle starting with selected source
-    onClose()
+  const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")
+
+  const handleStart = async () => {
+    if (!selectedSource) return onClose()
+    try {
+      setIsSubmitting(true)
+      if (selectedSource === "my-problem") {
+        const input = customText?.trim() || customUrl?.trim()
+        if (!input) {
+          setIsSubmitting(false)
+          return onClose()
+        }
+        const extracted = await extractProblem(input)
+        const title = extracted?.title || "Custom Problem"
+        const id = `${slugify(title)}-${Date.now()}`
+        await putProblems([
+          {
+            id,
+            title,
+            prompt: extracted?.prompt || input,
+            constraints: extracted?.constraints,
+            examples: extracted?.examples,
+            tags: extracted?.tags || ["Custom"],
+            source: customUrl ? "url" : "paste",
+            createdAt: Date.now(),
+          },
+        ])
+        // Set as today's current problem for TodayScreen
+        try { localStorage.setItem("today-current-problem-id", id) } catch {}
+      }
+    } finally {
+      setIsSubmitting(false)
+      onClose()
+    }
   }
 
   return (
@@ -117,13 +151,13 @@ export function SourceModal({ isOpen, onClose }: SourceModalProps) {
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">Progress</span>
                           <span className="font-medium">
-                            {Math.round(((source.currentIndex || 0) / (source.totalProblems || 1)) * 100)}%
+                            {Math.round((source.currentIndex / source.totalProblems) * 100)}%
                           </span>
                         </div>
                         <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-violet-500 to-lime-400 transition-all"
-                            style={{ width: `${((source.currentIndex || 0) / (source.totalProblems || 1)) * 100}%` }}
+                            style={{ width: `${(source.currentIndex / source.totalProblems) * 100}%` }}
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">Skipping once won't break order</p>
@@ -224,10 +258,10 @@ export function SourceModal({ isOpen, onClose }: SourceModalProps) {
                 selectedSource &&
                   "bg-gradient-to-r from-violet-500 to-lime-400 hover:from-violet-600 hover:to-lime-500",
               )}
-              disabled={!selectedSource}
+              disabled={!selectedSource || isSubmitting}
               onClick={handleStart}
             >
-              Start Problem
+              {isSubmitting ? "Working..." : "Start Problem"}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>

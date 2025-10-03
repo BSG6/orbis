@@ -8,6 +8,7 @@ import { ReviewScreen } from "./review-screen"
 import { FavoritesScreen } from "./favorites-screen"
 import { TwoMinuteStartDrawer } from "./two-minute-start-drawer"
 import { DemoOverlay } from "./demo-overlay"
+import { ErrorBankScreen } from "./error-bank-screen"
 
 export function Orbis() {
   const [isDarkMode, setIsDarkMode] = useState(true)
@@ -20,7 +21,8 @@ export function Orbis() {
   // Check if start drawer should be minimized on load
   useEffect(() => {
     const savedMinimized = sessionStorage.getItem("start-drawer-minimized")
-    if (savedMinimized === "true") {
+    const autoMin = localStorage.getItem("start-automin") === "true"
+    if (savedMinimized === "true" || autoMin) {
       setIsStartDrawerOpen(false)
       setIsStartDrawerMinimized(true)
     }
@@ -35,15 +37,17 @@ export function Orbis() {
         setIsFocusMode={setIsFocusMode}
         demoEnabled={demoEnabled}
         setDemoEnabled={setDemoEnabled}
+        openStartDrawer={() => { setDemoEnabled(false); setIsStartDrawerOpen(true) }}
       />
 
       <div className="flex flex-1 overflow-hidden">
         <LeftNavigation activeScreen={activeScreen} setActiveScreen={setActiveScreen} isFocusMode={isFocusMode} />
 
-        <main className={`flex-1 transition-layout ${isFocusMode ? "ml-0" : ""}`}>
+        <main className={`flex-1 transition-layout ${isFocusMode ? "ml-0" : ""} min-h-0 overflow-y-auto`}>
           {activeScreen === "Today" && <TodayScreen isFocusMode={isFocusMode} />}
           {activeScreen === "Review" && <ReviewScreen isFocusMode={isFocusMode} />}
           {activeScreen === "Favorites" && <FavoritesScreen isFocusMode={isFocusMode} />}
+          {activeScreen === "Error Bank" && <ErrorBankScreen />}
           {!["Today", "Review", "Favorites"].includes(activeScreen) && (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">

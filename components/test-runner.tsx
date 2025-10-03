@@ -6,15 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Play, Square, CheckCircle, XCircle, Clock, Terminal } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useCodeRunner, TestCase, TestResult, ConsoleOutput } from "@/hooks/use-code-runner"
+import { useCodeRunner, TestCase } from "@/hooks/use-code-runner"
+import { classifyError } from "@/lib/ai"
+import { addErrorEntry } from "@/lib/db"
 
 interface TestRunnerProps {
   code: string
   tests: TestCase[]
   className?: string
+  problemId?: string
+  assistanceLevel?: string
 }
 
-export function TestRunner({ code, tests, className }: TestRunnerProps) {
+export function TestRunner({ code, tests, className, problemId, assistanceLevel }: TestRunnerProps) {
   const { isRunning, result, runCode, stopExecution, initializeWorker } = useCodeRunner()
   const [runCount, setRunCount] = useState(0)
 
@@ -33,6 +37,24 @@ export function TestRunner({ code, tests, className }: TestRunnerProps) {
 
   const passedTests = result?.testResults?.filter(t => t.passed).length || 0
   const totalTests = result?.testResults?.length || 0
+
+  // Capture first failing test into Error Bank
+  useEffect(() => {
+    if (!result || !problemId || !Array.isArray(result.testResults)) return
+    const firstFail = result.testResults.find((t) => !t.passed)
+    if (!firstFail) return
+    const evidence = `input=${JSON.stringify(firstFail.input)} expected=${JSON.stringify(firstFail.expected)} actual=${JSON.stringify(firstFail.actual)} error=${firstFail.error || ''}`
+    const category = classifyError(firstFail.error || String(firstFail.actual || ''))
+    const rec = {
+      id: `${problemId}-${Date.now()}`,
+      problemId,
+      date: Date.now(),
+      assistanceLevel,
+      categories: [category],
+      failingEvidence: evidence,
+    }
+    addErrorEntry(rec).catch(() => {})
+  }, [result, problemId, assistanceLevel])
 
   return (
     <div className={cn("space-y-4", className)}>

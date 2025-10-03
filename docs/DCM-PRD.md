@@ -74,6 +74,22 @@ Daily Coding Mentor (DCM) is a local-first web app that serves one coding proble
 ### 4.8 Source Selection
 - AI random • NeetCode (in order) • My problem.
 
+### 4.9 AI Chat (Today)
+- Purpose: user can ask questions about the current problem, get assistance-aware responses.
+- Placement: Chat tab near Console/Output or bottom drawer toggle.
+- Guardrails (respect Assistance Levels):
+  - Review: no code; brief analysis, complexity notes, edge cases, extra tests.
+  - Guidance: 1–3 hints; Nudge → Strategy → Specific; no full solutions.
+  - Total Help: concise ELI5 → Practical → Technical; 3 edge cases + minimal tests.
+- Context Tiers (fallbacks):
+  1) DB: Structured problem fields from IndexedDB
+  2) Imported/extracted: URL/paste extraction (immediately persisted to DB)
+  3) Firecrawl (dev-time): normalized object seeded locally
+  4) Minimal: prompt user for problem text; else generic templates (labeled “Generic – limited context”)
+- Persistence: message history per problemId in IndexedDB; snapshot caching for context.
+- API: server-only `/api/gemini/chat` with streaming and strict clamps; fallback to local templates when unavailable.
+- UX: presets; keyboard submit; copy/insert (insert only in Total Help); cancel in-flight.
+
 ## 5) Assistance Levels (rules & guardrails)
 
 ### 5.1 Review

@@ -31,14 +31,33 @@ export type FavoriteRecord = {
   updatedAt: number
 }
 
+export type ErrorBankRecord = {
+  id: string
+  problemId: string
+  date: number
+  assistanceLevel?: string
+  categories: string[]
+  failingEvidence?: string
+  rootCause?: string
+  fixInsight?: string
+}
+
+export type ChatMessageRecord = {
+  id: string // `${problemId}-${timestamp}-${role}`
+  problemId: string
+  date: number
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export type OrbisDB = IDBPDatabase<unknown>
 
 let dbPromise: Promise<IDBPDatabase<unknown>> | null = null
 
 export async function getDB(): Promise<IDBPDatabase<unknown>> {
   if (!dbPromise) {
-    dbPromise = openDB('orbis-db', 2, {
-      upgrade(db) {
+    dbPromise = openDB('orbis-db', 4, {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains('problems')) {
           const problems = db.createObjectStore('problems', { keyPath: 'id' })
           problems.createIndex('by_createdAt', 'createdAt')
@@ -50,6 +69,16 @@ export async function getDB(): Promise<IDBPDatabase<unknown>> {
         if (!db.objectStoreNames.contains('favorites')) {
           const favorites = db.createObjectStore('favorites', { keyPath: 'problemId' })
           favorites.createIndex('by_createdAt', 'createdAt')
+        }
+        if (!db.objectStoreNames.contains('errorBank')) {
+          const eb = db.createObjectStore('errorBank', { keyPath: 'id' })
+          eb.createIndex('by_problemId', 'problemId')
+          eb.createIndex('by_date', 'date')
+        }
+        if (!db.objectStoreNames.contains('chat')) {
+          const chat = db.createObjectStore('chat', { keyPath: 'id' })
+          chat.createIndex('by_problemId', 'problemId')
+          chat.createIndex('by_date', 'date')
         }
       },
     })
@@ -119,4 +148,45 @@ export async function deleteFavorite(problemId: string): Promise<void> {
 export async function getAllFavorites(): Promise<FavoriteRecord[]> {
   const db = await getDB()
   return (db as any).getAll('favorites')
+}
+
+// Error Bank CRUD
+export async function addErrorEntry(rec: ErrorBankRecord): Promise<void> {
+  const db = await getDB()
+  const tx = (db as any).transaction('errorBank', 'readwrite')
+  await tx.objectStore('errorBank').put(rec)
+  await tx.done
+}
+
+export async function updateErrorEntry(rec: ErrorBankRecord): Promise<void> {
+  const db = await getDB()
+  const tx = (db as any).transaction('errorBank', 'readwrite')
+  await tx.objectStore('errorBank').put(rec)
+  await tx.done
+}
+
+export async function getAllErrorEntries(): Promise<ErrorBankRecord[]> {
+  const db = await getDB()
+  return (db as any).getAll('errorBank')
+}
+
+export async function getLatestErrorEntryByProblemId(problemId: string): Promise<ErrorBankRecord | undefined> {
+  const db = await getDB()
+  const all = await (db as any).getAll('errorBank')
+  const filtered = (all as ErrorBankRecord[]).filter((e) => e.problemId === problemId)
+  return filtered.sort((a, b) => b.date - a.date)[0]
+}
+
+// Chat CRUD
+export async function addChatMessage(rec: ChatMessageRecord): Promise<void> {
+  const db = await getDB()
+  const tx = (db as any).transaction('chat', 'readwrite')
+  await tx.objectStore('chat').put(rec)
+  await tx.done
+}
+
+export async function getChatMessagesByProblemId(problemId: string): Promise<ChatMessageRecord[]> {
+  const db = await getDB()
+  const all = await (db as any).getAll('chat')
+  return (all as ChatMessageRecord[]).filter((m) => m.problemId === problemId).sort((a, b) => a.date - b.date)
 }

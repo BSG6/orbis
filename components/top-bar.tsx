@@ -13,9 +13,10 @@ interface TopBarProps {
   setIsFocusMode: (value: boolean) => void
   demoEnabled?: boolean
   setDemoEnabled?: (value: boolean) => void
+  openStartDrawer?: () => void
 }
 
-export function TopBar({ isDarkMode, setIsDarkMode, isFocusMode, setIsFocusMode, demoEnabled, setDemoEnabled }: TopBarProps) {
+export function TopBar({ isDarkMode, setIsDarkMode, isFocusMode, setIsFocusMode, demoEnabled, setDemoEnabled, openStartDrawer }: TopBarProps) {
   const handleThemeToggle = () => {
     setIsDarkMode(!isDarkMode)
     document.documentElement.classList.toggle("dark")
@@ -33,6 +34,12 @@ export function TopBar({ isDarkMode, setIsDarkMode, isFocusMode, setIsFocusMode,
       </div>
 
       <div className="flex items-center gap-6">
+        {/* Start Drawer */}
+        {openStartDrawer && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={openStartDrawer}>
+            Start
+          </Button>
+        )}
         {/* Demo Mode */}
         {setDemoEnabled && (
           <Button

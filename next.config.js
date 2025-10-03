@@ -1,9 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production'
+
+    const scriptSrc = [
+      "'self'",
+      "'unsafe-inline'",
+      'blob:',
+      ...(isDev ? ["'unsafe-eval'", 'wasm-unsafe-eval'] : []),
+    ].join(' ')
+
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' blob:",
+      `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
@@ -30,16 +39,12 @@ const nextConfig = {
       // Cache static Next assets aggressively
       {
         source: '/_next/static/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
       // Do not cache HTML
       {
         source: '/((?!_next/static).*)',
-        headers: [
-          { key: 'Cache-Control', value: 'no-store' },
-        ],
+        headers: [{ key: 'Cache-Control', value: 'no-store' }],
       },
     ]
   },

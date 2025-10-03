@@ -211,4 +211,27 @@ Constraints: UI first (v0), then light logic, then runner shell. No backend, no 
    - 28.2 Network hard-block during demo
      - AC: Feature flag blocks fetch; UI badge "Offline-friendly" visible during demo.
 
+## AI Chat (assistive Q&A for Today’s problem)
+
+29) Chat UI and persistence
+   - 29.1 ChatPanel component with message history per problemId (IndexedDB)
+     - AC: Input with send/cancel, bubbles, presets; keyboard submit; scroll-to-latest; history persists.
+   - 29.2 Assistance-aware guardrails
+     - AC: Review = no code; Guidance = hints style; Total Help = concise with cautions.
+
+30) Context builder (fallback tiers)
+   - 30.1 Tiered context: DB → imported/extracted → Firecrawl (dev-time) → minimal prompt
+     - AC: Util comp builds snapshot; persists structured problems when available; labels context source.
+
+31) Gemini chat API (server-only)
+   - 31.1 POST /api/gemini/chat (stream + non-stream)
+     - AC: Accepts {messages[], problemContext, assistanceLevel, code?}; clamps outputs; timeouts; JSON envelope.
+   - 31.2 Client wrapper with fallback
+     - AC: On failure, fallback to local templates; clearly mark generic responses when minimal context.
+
+32) Polishing
+   - 32.1 Presets (Explain constraints, Edge cases?, Why test X fails?)
+   - 32.2 Copy/Insert buttons (Insert allowed only in Total Help)
+   - 32.3 Token cap + graceful errors
+
 

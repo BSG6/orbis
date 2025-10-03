@@ -24,6 +24,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CoachSkeleton } from "./skeletons/coach-skeleton"
+import { generateHintLadder, generateTotalHelp } from "@/lib/ai"
+import { getHints, getTotalHelp as getTotalHelpRemote } from "@/lib/aiClient"
 
 type AssistanceLevel = "Review" | "Guidance" | "Total Help"
 
@@ -32,9 +34,10 @@ interface CoachRightRailProps {
   isCollapsed?: boolean
   onToggleCollapse?: () => void
   assistanceLevel: AssistanceLevel
+  problemPrompt: string
 }
 
-export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, assistanceLevel }: CoachRightRailProps) {
+export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, assistanceLevel, problemPrompt }: CoachRightRailProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [currentHint, setCurrentHint] = useState(0)
   const [checkpointInput, setCheckpointInput] = useState("")
@@ -42,6 +45,7 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
   const [panicReflection, setPanicReflection] = useState("")
   const [isPanicDialogOpen, setIsPanicDialogOpen] = useState(false)
   const [panicUsedToday, setPanicUsedToday] = useState(false)
+  const [revealed, setRevealed] = useState(false)
 
   // Daily Panic Token limit
   useEffect(() => {
@@ -57,20 +61,27 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
     setPanicUsedToday(true)
   }
 
+  // AI-generated hint ladder from prompt
+  const [aiHints, setAiHints] = useState(generateHintLadder(problemPrompt))
+  useEffect(() => {
+    let mounted = true
+    getHints(problemPrompt).then((h) => { if (mounted) setAiHints(h) }).catch(() => {})
+    return () => { mounted = false }
+  }, [problemPrompt])
   const hints = [
     {
-      title: "Think About the Problem",
-      content: "What patterns do you recognize? Consider the structure of palindromes.",
+      title: "Nudge",
+      content: aiHints.nudge,
       unlocked: true,
     },
     {
-      title: "Consider Your Approach",
-      content: "Think about expanding around centers vs dynamic programming approaches.",
+      title: "Strategy",
+      content: aiHints.strategy,
       unlocked: currentHint >= 0,
     },
     {
-      title: "Implementation Details",
-      content: "Remember to handle edge cases like empty strings and single characters.",
+      title: "Specific",
+      content: aiHints.specific,
       unlocked: currentHint >= 1 && checkpointInput.trim().length > 0,
     },
   ]
@@ -89,6 +100,14 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
 
   const showHintLadder = assistanceLevel === "Guidance"
   const showPanicToken = assistanceLevel !== "Review"
+
+  const [totalHelp, setTotalHelp] = useState<any>(null)
+  useEffect(() => {
+    if (!revealed) return
+    let mounted = true
+    getTotalHelpRemote(problemPrompt).then((th) => { if (mounted) setTotalHelp(th) }).catch(() => setTotalHelp(generateTotalHelp(problemPrompt)))
+    return () => { mounted = false }
+  }, [revealed, problemPrompt])
 
   return (
     <div className="w-80 bg-background border-l border-border p-6 overflow-y-auto">
@@ -261,7 +280,7 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
           </Card>
         )}
 
-        {/* 3-Step Hint Ladder */}
+        {/* 3-Stage Hint Ladder */}
         {showHintLadder && (
           <Card>
             <CardHeader className="pb-3">
@@ -301,12 +320,9 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
                     </div>
                   )}
 
-                  {/* Checkpoint Input after Hint 2 */}
                   {index === 1 && hint.unlocked && currentHint >= index && (
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Checkpoint: What's your approach?
-                      </label>
+                      <label className="text-xs font-medium text-muted-foreground">Checkpoint: What's your approach?</label>
                       <Input
                         placeholder="Describe your solution approach..."
                         value={checkpointInput}
@@ -323,7 +339,7 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
 
         {/* Panic Token */}
         {showPanicToken && (
-          <Dialog open={isPanicDialogOpen} onOpenChange={setIsPanicDialogOpen}>
+          <Dialog open={isPanicDialogOpen} onOpenChange={(v) => { setIsPanicDialogOpen(v); if (!v) setRevealed(false) }}>
             <DialogTrigger asChild>
               <Button
                 variant="outline"
@@ -348,30 +364,63 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
                 <p className="text-sm text-muted-foreground">
                   It's okay to feel stuck. Take a moment to reflect on what you've learned so far.
                 </p>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">What's challenging you right now?</label>
-                  <Textarea
-                    placeholder="Write a quick reflection..."
-                    value={panicReflection}
-                    onChange={(e) => setPanicReflection(e.target.value)}
-                    className="min-h-[80px]"
-                  />
-                </div>
+                {!revealed && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">What's challenging you right now?</label>
+                    <Textarea
+                      placeholder="Write a quick reflection..."
+                      value={panicReflection}
+                      onChange={(e) => setPanicReflection(e.target.value)}
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                )}
+                {revealed && totalHelp && (
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <div className="font-medium text-foreground mb-1">ELI5</div>
+                      <p className="text-muted-foreground">{totalHelp.eli5}</p>
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground mb-1">Practical</div>
+                      <p className="text-muted-foreground">{totalHelp.practical}</p>
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground mb-1">Technical</div>
+                      <p className="text-muted-foreground">{totalHelp.technical}</p>
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground mb-1">Edge Cases</div>
+                      <ul className="list-disc pl-5 text-muted-foreground">
+                        {totalHelp.edgeCases.map((e, i) => (
+                          <li key={i}>{e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setIsPanicDialogOpen(false)}>
-                    Just Breathe
-                  </Button>
-                  <Button
-                    className="flex-1 bg-gradient-to-r from-violet-500 to-lime-400 hover:from-violet-600 hover:to-lime-500"
-                    onClick={() => {
-                      markPanicUsed()
-                      setIsPanicDialogOpen(false)
-                    }}
-                    disabled={panicReflection.trim().length === 0}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Reveal Solution
-                  </Button>
+                  {!revealed ? (
+                    <>
+                      <Button variant="outline" className="flex-1 bg-transparent" onClick={() => setIsPanicDialogOpen(false)}>
+                        Just Breathe
+                      </Button>
+                      <Button
+                        className="flex-1 bg-gradient-to-r from-violet-500 to-lime-400 hover:from-violet-600 hover:to-lime-500"
+                        onClick={() => {
+                          if (panicReflection.trim().length === 0) return
+                          markPanicUsed();
+                          setRevealed(true)
+                        }}
+                        disabled={panicReflection.trim().length === 0}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Reveal Solution
+                      </Button>
+                    </>
+                  ) : (
+                    <Button className="flex-1" onClick={() => setIsPanicDialogOpen(false)}>Close</Button>
+                  )}
                 </div>
               </div>
             </DialogContent>

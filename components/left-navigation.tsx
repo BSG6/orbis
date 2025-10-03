@@ -14,6 +14,7 @@ const navigationItems = [
   { id: "Today", label: "Today", icon: Calendar },
   { id: "Review", label: "Review", icon: RotateCcw },
   { id: "Favorites", label: "Favorites", icon: Heart },
+  { id: "Error Bank", label: "Error Bank", icon: Award },
   { id: "Add", label: "Add", icon: Plus },
   { id: "History", label: "History", icon: History },
   { id: "Tracks", label: "Tracks", icon: Route },
