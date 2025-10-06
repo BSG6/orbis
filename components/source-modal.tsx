@@ -136,7 +136,7 @@ export function SourceModal({ isOpen, onClose }: SourceModalProps) {
                         <CardTitle className="text-lg">{source.title}</CardTitle>
                         {source.id === "neetcode" && (
                           <Badge variant="secondary" className="mt-1 text-xs">
-                            {source.currentIndex}/{source.totalProblems}
+                            {(source.currentIndex ?? 0)}/{(source.totalProblems ?? 0)}
                           </Badge>
                         )}
                       </div>
@@ -146,18 +146,18 @@ export function SourceModal({ isOpen, onClose }: SourceModalProps) {
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground leading-relaxed">{source.description}</p>
 
-                    {source.id === "neetcode" && (
+                      {source.id === "neetcode" && (
                       <div className="p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">
-                            {Math.round((source.currentIndex / source.totalProblems) * 100)}%
-                          </span>
+                            <span className="font-medium">
+                              {Math.round((((source.currentIndex ?? 0) / (((source.totalProblems ?? 0) || 1))) * 100))}%
+                            </span>
                         </div>
                         <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-violet-500 to-lime-400 transition-all"
-                            style={{ width: `${(source.currentIndex / source.totalProblems) * 100}%` }}
+                              style={{ width: `${((((source.currentIndex ?? 0) / (((source.totalProblems ?? 0) || 1))) * 100).toFixed(0))}%` }}
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">Skipping once won't break order</p>
