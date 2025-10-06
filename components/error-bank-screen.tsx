@@ -9,6 +9,7 @@ import { getAllErrorEntries, type ErrorBankRecord, updateErrorEntry } from "@/li
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { ArrowRight } from "lucide-react"
 
 export function ErrorBankScreen() {
   const [entries, setEntries] = useState<ErrorBankRecord[]>([])
@@ -131,7 +132,18 @@ export function ErrorBankScreen() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        try { localStorage.setItem("today-current-problem-id", e.problemId) } catch {}
+                        window.dispatchEvent(new CustomEvent("open-today", { detail: { problemId: e.problemId } }))
+                      }}
+                    >
+                      Open in Today <ArrowRight className="h-3 w-3 ml-1" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

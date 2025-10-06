@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { GoogleGenAI } from "@google/genai"
+import { getClientAndModel } from "@/lib/server/genai"
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
 
 // Allowed tasks
 type Task = "hints" | "totalHelp" | "extract" | "classify"
@@ -15,15 +16,6 @@ interface AIRequestBody {
 
 // Hard caps
 const MAX_TOKENS = 512
-
-function getClientAndModel() {
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
-  if (!apiKey) return { client: null as any, modelName: null as any }
-  const client = new GoogleGenAI({ apiKey, apiVersion: "v1" })
-  const envModel = process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || "gemini-1.5-pro"
-  const modelName = envModel.startsWith("models/") ? envModel : `models/${envModel}`
-  return { client, modelName }
-}
 
 function clamp(text: string, max = 2000) {
   if (!text) return ""
@@ -64,17 +56,28 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json({ error: "Unsupported task" }, { status: 400 })
     }
-
+    // async function main() {
+    //   const response = await ai.models.generateContent({
+    //     model: "gemini-2.5-flash",
+    //     contents: "How does AI work?",
+    //     config: {
+    //       thinkingConfig: {
+    //         thinkingBudget: 0, // Disables thinking
+    //       },
+    //     }
+    //   });
+    //   console.log(response.text);
+    // }
+    
+    // await main();
     let genText = ""
     try {
       const result = await client.models.generateContent({
-        model: modelName,
-        contents: [
-          { role: "user", parts: [{ text: system + "\n\nUSER:\n" + user }] },
-        ] as any,
-        config: { maxOutputTokens: MAX_TOKENS, temperature: 0.3 } as any,
+        model:  "gemini-2.5-flash",
+        contents: [{ role: "user", parts: [{ text: `${system}\n\nUSER:\n${user}` }] }] as any,
+        generationConfig: { maxOutputTokens: MAX_TOKENS, temperature: 0.3 } as any,
       } as any)
-      genText = (result as any).text
+      genText = (result as any).text ?? (result as any).output_text ?? ""
     } catch (err: any) {
       console.error("/api/gemini model call failed:", err)
       const isProd = process.env.NODE_ENV === 'production'

@@ -344,25 +344,12 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
                 </CardContent>
               </Card>
             )}
-            {/* Chat Panel */}
-            <div className="mt-3">
-              <ChatPanel
-                problemId={currentProblemId}
-                assistanceLevel={assistanceLevel}
-                problemContext={`Title: ${problemTitle}\n\nPrompt:\n${promptText}\n\nConstraints:\n${constraintsText}\n\nExamples:\n${examplesText}`}
-                code={code}
-              />
-            </div>
           </div>
         )}
 
-        <div
-          className={cn(
-            "flex-1 min-h-0 transition-all duration-300",
-            isFocusMode ? "grid grid-cols-1" : "grid grid-cols-1 lg:grid-cols-2 gap-6",
-          )}
-        >
-          <Card className={cn("flex flex-col", isFocusMode && "col-span-full")}>
+        {/* Top row: Editor + Chat side by side */}
+        <div className={cn("transition-all duration-300", isFocusMode ? "grid grid-cols-1 gap-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6")}> 
+          <Card className={cn("flex flex-col")}> 
             <CardHeader className={cn("pb-3", isFocusMode && "pb-2")}>
               <CardTitle className={cn("flex items-center gap-2", isFocusMode ? "text-base" : "text-lg")}>                
                 <Terminal className={cn("text-violet-500", isFocusMode ? "h-4 w-4" : "h-5 w-5")} />
@@ -402,18 +389,28 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
             </CardContent>
           </Card>
 
-          {!isFocusMode && (
-            <div className="flex-1">
-              <TestRunner
-                code={code}
-                tests={testCases}
-                className="h-full"
-                problemId={currentProblemId}
-                assistanceLevel={assistanceLevel}
-              />
-            </div>
-          )}
+          <div className="flex-1">
+            <ChatPanel
+              problemId={currentProblemId}
+              assistanceLevel={assistanceLevel}
+              problemContext={`Title: ${problemTitle}\n\nPrompt:\n${promptText}\n\nConstraints:\n${constraintsText}\n\nExamples:\n${examplesText}`}
+              code={code}
+            />
+          </div>
         </div>
+
+        {/* Bottom row: TestRunner full width */}
+        {!isFocusMode && (
+          <div className="mt-6">
+            <TestRunner
+              code={code}
+              tests={testCases}
+              className="h-full"
+              problemId={currentProblemId}
+              assistanceLevel={assistanceLevel}
+            />
+          </div>
+        )}
 
         <div
           className={cn(

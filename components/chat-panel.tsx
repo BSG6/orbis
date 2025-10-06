@@ -26,6 +26,7 @@ export function ChatPanel({ problemId, assistanceLevel, problemContext, code }: 
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -142,6 +143,7 @@ export function ChatPanel({ problemId, assistanceLevel, problemContext, code }: 
         {error && <div className="mt-2 text-xs text-red-500">{error}</div>}
         <div className="mt-3 flex items-center gap-2">
           <Input
+            ref={inputRef}
             placeholder="Type your question…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -157,8 +159,9 @@ export function ChatPanel({ problemId, assistanceLevel, problemContext, code }: 
           </Button>
           <Button
             variant="outline"
-            onClick={() => setInput("")}
-            disabled={sending || input.trim().length === 0}
+            type="button"
+            onClick={() => { setInput(""); setError(null); inputRef.current?.focus() }}
+            disabled={input.trim().length === 0}
           >
             Clear
           </Button>

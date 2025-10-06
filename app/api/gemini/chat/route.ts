@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { GoogleGenAI } from "@google/genai"
+import { getClientAndModel } from "@/lib/server/genai"
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,15 +14,6 @@ interface ChatRequestBody {
   problemContext?: string
   assistanceLevel?: 'Review' | 'Guidance' | 'Total Help'
   code?: string
-}
-
-function getClientAndModel() {
-  const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
-  if (!apiKey) return { client: null as any, modelName: null as any }
-  const client = new GoogleGenAI({ apiKey, apiVersion: "v1" })
-  const envModel = process.env.GEMINI_MODEL || process.env.GOOGLE_GEMINI_MODEL || "gemini-1.5-pro"
-  const modelName = envModel.startsWith("models/") ? envModel : `models/${envModel}`
-  return { client, modelName }
 }
 
 function guardrails(level: string | undefined) {
@@ -66,7 +57,7 @@ export async function POST(req: NextRequest) {
       const result = await client.models.generateContent({
         model: modelName,
         contents: [{ role: 'user', parts: [{ text: prompt }] }] as any,
-        config: { maxOutputTokens: 512, temperature: 0.3 } as any,
+        generationConfig: { maxOutputTokens: 512, temperature: 0.3 } as any,
       } as any)
       genText = (result as any).text
     } catch (err: any) {

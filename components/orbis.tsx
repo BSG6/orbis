@@ -18,6 +18,14 @@ export function Orbis() {
   const [isStartDrawerMinimized, setIsStartDrawerMinimized] = useState(false)
   const [demoEnabled, setDemoEnabled] = useState(false)
 
+  useEffect(() => {
+    function onOpenToday(e: any) {
+      setActiveScreen("Today")
+    }
+    window.addEventListener("open-today", onOpenToday as any)
+    return () => window.removeEventListener("open-today", onOpenToday as any)
+  }, [])
+
   // Check if start drawer should be minimized on load
   useEffect(() => {
     const savedMinimized = sessionStorage.getItem("start-drawer-minimized")
