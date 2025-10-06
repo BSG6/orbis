@@ -392,7 +392,7 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
                     <div>
                       <div className="font-medium text-foreground mb-1">Edge Cases</div>
                       <ul className="list-disc pl-5 text-muted-foreground">
-                        {totalHelp.edgeCases.map((e, i) => (
+                        {totalHelp.edgeCases.map((e: string, i: number) => (
                           <li key={i}>{e}</li>
                         ))}
                       </ul>

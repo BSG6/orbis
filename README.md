@@ -32,3 +32,13 @@ Linting & Formatting: ESLint + Prettier
 🚀 Deployment
 
 Deployed on Vercel.
+
+Required environment variables (Vercel → Project Settings → Environment Variables):
+
+- GOOGLE_API_KEY or GEMINI_API_KEY
+- Optional: GEMINI_MODEL or GOOGLE_GEMINI_MODEL (default: gemini-2.5-flash)
+
+Notes:
+- API routes under `app/api/gemini/*` return 503 if keys are missing.
+- Health check: GET `/ok` → `{ ok: true }`.
+- CSP is configured in `next.config.js` for the in-browser code runner worker.
