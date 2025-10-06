@@ -68,6 +68,13 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
     getHints(problemPrompt).then((h) => { if (mounted) setAiHints(h) }).catch(() => {})
     return () => { mounted = false }
   }, [problemPrompt])
+  const [totalHelp, setTotalHelp] = useState<any>(null)
+  useEffect(() => {
+    if (!revealed) return
+    let mounted = true
+    getTotalHelpRemote(problemPrompt).then((th) => { if (mounted) setTotalHelp(th) }).catch(() => setTotalHelp(generateTotalHelp(problemPrompt)))
+    return () => { mounted = false }
+  }, [revealed, problemPrompt])
   const hints = [
     {
       title: "Nudge",
@@ -101,13 +108,6 @@ export function CoachRightRail({ isFocusMode, isCollapsed, onToggleCollapse, ass
   const showHintLadder = assistanceLevel === "Guidance"
   const showPanicToken = assistanceLevel !== "Review"
 
-  const [totalHelp, setTotalHelp] = useState<any>(null)
-  useEffect(() => {
-    if (!revealed) return
-    let mounted = true
-    getTotalHelpRemote(problemPrompt).then((th) => { if (mounted) setTotalHelp(th) }).catch(() => setTotalHelp(generateTotalHelp(problemPrompt)))
-    return () => { mounted = false }
-  }, [revealed, problemPrompt])
 
   return (
     <div className="w-80 bg-background border-l border-border p-6 overflow-y-auto">

@@ -31,7 +31,7 @@ export function TwoMinuteStartDrawer({ isOpen, onClose, onMinimize, isMinimized 
     if (savedMinimized === "true" && !isMinimized) {
       onMinimize()
     }
-  }, [])
+  }, [isMinimized, onMinimize])
 
   // Load saved inputs from localStorage
   useEffect(() => {

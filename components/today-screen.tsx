@@ -75,7 +75,7 @@ export function TodayScreen({ isFocusMode }: TodayScreenProps) {
       setIsFavorited(!!fav)
     }).catch(() => {})
     return () => { mounted = false }
-  }, [])
+  }, [currentProblemId])
 
   const DEFAULT_CODE = `function longestPalindrome(s) {
   // Your solution here

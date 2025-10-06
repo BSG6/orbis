@@ -28,19 +28,24 @@ export function CodeEditor({
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const [isReady, setIsReady] = useState(false)
+  const onChangeRef = useRef(onChange)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   useEffect(() => {
     if (!editorRef.current) return
 
     const startState = EditorState.create({
-      doc: value,
+      doc: "",
       extensions: [
         basicSetup,
         javascript(),
         theme === "dark" ? oneDark : [],
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
-            onChange(update.state.doc.toString())
+            onChangeRef.current(update.state.doc.toString())
           }
         }),
         EditorState.readOnly.of(readOnly),
